@@ -17,7 +17,7 @@ class SmsRepository(private val context: Context) {
     companion object {
         private var cachedConversations: List<Conversation>? = null
         private var lastFetchTime: Long = 0
-        private const val CACHE_DURATION = 5000L // 5 seconds cache
+        private const val CACHE_DURATION = 30000L // 30 seconds cache
     }
 
     suspend fun getConversations(forceRefresh: Boolean = false): List<Conversation> = withContext(Dispatchers.IO) {
@@ -27,6 +27,7 @@ class SmsRepository(private val context: Context) {
         }
 
         val conversations = mutableListOf<Conversation>()
+        val contactNameCache = mutableMapOf<String, String?>()
         val projection = arrayOf(
             Telephony.Sms.THREAD_ID,
             Telephony.Sms.ADDRESS,
@@ -62,7 +63,10 @@ class SmsRepository(private val context: Context) {
                     val snippet = it.getString(snippetIdx) ?: ""
                     val date = it.getLong(dateIdx)
                     val read = it.getInt(readIdx) == 1
-                    val contactName = getContactName(context, address)
+                    
+                    val contactName = contactNameCache.getOrPut(address) {
+                        getContactName(context, address)
+                    }
                     val category = categorizeMessage(address, snippet)
 
                     conversations.add(

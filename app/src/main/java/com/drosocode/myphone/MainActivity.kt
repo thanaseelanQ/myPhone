@@ -213,6 +213,7 @@ fun MainApp(activity: ComponentActivity) {
             }
         } else {
             Scaffold(
+                contentWindowInsets = WindowInsets(0, 0, 0, 0),
                 topBar = {
                     // Top bar is now empty or can be used for other things
                 },

@@ -46,6 +46,7 @@ fun HistoryScreen(onNavigateToSms: (String) -> Unit = {}) {
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
                 title = { 
@@ -80,11 +81,13 @@ fun HistoryScreen(onNavigateToSms: (String) -> Unit = {}) {
                             CategoryHeader(category)
                         }
                         items(logs) { merged ->
-                            PremiumCallLogItem(
-                                merged = merged, 
-                                onCallClick = { CallUtils.makeCall(context, merged.primaryLog.number) },
-                                onMessageClick = { onNavigateToSms(merged.primaryLog.number) }
-                            )
+                            Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                                PremiumCallLogItem(
+                                    merged = merged, 
+                                    onCallClick = { CallUtils.makeCall(context, merged.primaryLog.number) },
+                                    onMessageClick = { onNavigateToSms(merged.primaryLog.number) }
+                                )
+                            }
                         }
                     }
                 }
@@ -121,7 +124,7 @@ fun CategoryHeader(text: String) {
         text = text.uppercase(),
         style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 1.2.sp),
         color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(start = 20.dp, top = 24.dp, bottom = 8.dp)
+        modifier = Modifier.padding(start = 20.dp, top = 8.dp, bottom = 8.dp)
     )
 }
 
@@ -145,8 +148,8 @@ fun PremiumCallLogItem(merged: MergedCallLogEntry, onCallClick: () -> Unit, onMe
 
     Surface(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp)
+            .fillMaxWidth(0.95f)
+            .padding(vertical = 4.dp)
             .clip(RoundedCornerShape(16.dp))
             .clickable { onCallClick() },
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),

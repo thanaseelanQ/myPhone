@@ -57,13 +57,14 @@ fun ContactsScreen(onNavigateToSms: (String) -> Unit = {}) {
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
-            Column(modifier = Modifier.background(MaterialTheme.colorScheme.background)) {
+            Column(modifier = Modifier.background(MaterialTheme.colorScheme.background).statusBarsPadding()) {
                 // Reduced top and bottom padding for the title
                 Text(
                     text = "Contacts",
                     style = MaterialTheme.typography.headlineMedium,
-                    modifier = Modifier.padding(start = 16.dp, top = 4.dp, end = 16.dp, bottom = 0.dp)
+                    modifier = Modifier.padding(start = 16.dp, top = 0.dp, end = 16.dp, bottom = 0.dp)
                 )
                 // Adjusted SearchBar padding to move it closer to the title
                 SearchBar(

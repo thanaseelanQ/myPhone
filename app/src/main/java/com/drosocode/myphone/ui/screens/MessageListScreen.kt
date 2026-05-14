@@ -38,18 +38,20 @@ fun MessageListScreen(onConversationClick: (String, String) -> Unit) {
     var showNewMessageDialog by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    fun refresh() {
+    fun refresh(force: Boolean = false) {
         scope.launch {
-            conversations = repository.getConversations(true)
+            if (conversations.isEmpty()) isLoading = true
+            conversations = repository.getConversations(force)
             isLoading = false
         }
     }
 
     LaunchedEffect(Unit) {
-        refresh()
+        refresh(false)
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets.statusBars,
         floatingActionButton = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -60,7 +62,7 @@ fun MessageListScreen(onConversationClick: (String, String) -> Unit) {
                         scope.launch {
                             isLoading = true
                             repository.performCleanup()
-                            refresh()
+                            refresh(true)
                         }
                     },
                     containerColor = MaterialTheme.colorScheme.secondaryContainer,
@@ -84,7 +86,7 @@ fun MessageListScreen(onConversationClick: (String, String) -> Unit) {
             LazyRow(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                    .padding(top = 0.dp, bottom = 8.dp),
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -132,7 +134,7 @@ fun MessageListScreen(onConversationClick: (String, String) -> Unit) {
             onSend = { address, body ->
                 repository.sendMessage(address, body)
                 showNewMessageDialog = false
-                refresh()
+                refresh(true)
             }
         )
     }
