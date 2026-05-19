@@ -7,10 +7,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoDelete
 import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.Wallet
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,11 +33,15 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
-fun MessageListScreen(onConversationClick: (String, String) -> Unit) {
+fun MessageListScreen(
+    onConversationClick: (String, String) -> Unit,
+    onSpendAnalysisClick: () -> Unit
+) {
     val context = LocalContext.current
     val repository = remember { SmsRepository(context) }
     var conversations by remember { mutableStateOf(emptyList<Conversation>()) }
     var selectedCategory by remember { mutableStateOf(MessageCategory.ALL) } // Default to ALL
+    var searchQuery by remember { mutableStateOf("") } // SMS search query
     var isLoading by remember { mutableStateOf(true) }
     var showNewMessageDialog by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -57,6 +65,14 @@ fun MessageListScreen(onConversationClick: (String, String) -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 horizontalAlignment = Alignment.End
             ) {
+                SmallFloatingActionButton(
+                    onClick = onSpendAnalysisClick,
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                ) {
+                    Icon(Icons.Default.Wallet, contentDescription = "Spend Analysis")
+                }
+
                 SmallFloatingActionButton(
                     onClick = {
                         scope.launch {
@@ -82,6 +98,42 @@ fun MessageListScreen(onConversationClick: (String, String) -> Unit) {
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
+            // Search Bar
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                placeholder = { Text("Search messages...") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "Search",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { searchQuery = "" }) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Clear search",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                },
+                singleLine = true,
+                shape = RoundedCornerShape(28.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+                )
+            )
+
             // Category Selector
             LazyRow(
                 modifier = Modifier
@@ -104,16 +156,24 @@ fun MessageListScreen(onConversationClick: (String, String) -> Unit) {
                     CircularProgressIndicator()
                 }
             } else {
-                // Fix: Handle ALL filter correctly
-                val filteredConversations = if (selectedCategory == MessageCategory.ALL) {
-                    conversations
-                } else {
-                    conversations.filter { it.category == selectedCategory }
+                // Filter by category and search query
+                val filteredConversations = conversations.filter { conversation ->
+                    val matchesCategory = selectedCategory == MessageCategory.ALL || conversation.category == selectedCategory
+                    val matchesSearch = searchQuery.isBlank() ||
+                            (conversation.contactName ?: "").contains(searchQuery, ignoreCase = true) ||
+                            conversation.address.contains(searchQuery, ignoreCase = true) ||
+                            conversation.snippet.contains(searchQuery, ignoreCase = true)
+                    matchesCategory && matchesSearch
                 }
                 
                 if (filteredConversations.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(text = "No messages in ${selectedCategory.name.lowercase()}", style = MaterialTheme.typography.bodyLarge)
+                        val noMessageText = if (searchQuery.isNotBlank()) {
+                            "No messages matching \"$searchQuery\""
+                        } else {
+                            "No messages in ${selectedCategory.name.lowercase()}"
+                        }
+                        Text(text = noMessageText, style = MaterialTheme.typography.bodyLarge)
                     }
                 } else {
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -132,9 +192,11 @@ fun MessageListScreen(onConversationClick: (String, String) -> Unit) {
         NewMessageDialog(
             onDismiss = { showNewMessageDialog = false },
             onSend = { address, body ->
-                repository.sendMessage(address, body)
+                scope.launch {
+                    repository.sendMessage(address, body)
+                    refresh(true)
+                }
                 showNewMessageDialog = false
-                refresh(true)
             }
         )
     }

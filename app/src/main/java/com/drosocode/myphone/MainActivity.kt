@@ -44,6 +44,7 @@ import com.drosocode.myphone.ui.screens.HistoryScreen
 import com.drosocode.myphone.ui.screens.InCallScreen
 import com.drosocode.myphone.ui.screens.MessageListScreen
 import com.drosocode.myphone.ui.screens.ConversationScreen
+import com.drosocode.myphone.ui.screens.SpendAnalysisScreen
 import android.provider.Telephony
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
@@ -384,8 +385,14 @@ fun MainApp(activity: ComponentActivity) {
                     composable(Screen.Messages.route) { MessageListScreen(
                         onConversationClick = { threadId, address ->
                             navController.navigate("conversation/$threadId/$address")
+                        },
+                        onSpendAnalysisClick = {
+                            navController.navigate("spend_analysis")
                         }
                     ) }
+                    composable("spend_analysis") {
+                        SpendAnalysisScreen(onBack = { navController.popBackStack() })
+                    }
                     composable(Screen.InCall.route) {
                         InCallScreen(onBack = { navController.popBackStack() })
                     }

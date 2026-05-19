@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.provider.ContactsContract
 import com.drosocode.myphone.data.model.Contact
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class ContactRepository(private val context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("contact_bin", Context.MODE_PRIVATE)
@@ -15,10 +17,10 @@ class ContactRepository(private val context: Context) {
         private const val CACHE_DURATION = 5000L // 5 seconds cache
     }
 
-    fun fetchContacts(forceRefresh: Boolean = false): List<Contact> {
+    suspend fun fetchContacts(forceRefresh: Boolean = false): List<Contact> = withContext(Dispatchers.IO) {
         val now = System.currentTimeMillis()
         if (!forceRefresh && cachedContacts != null && (now - lastFetchTime) < CACHE_DURATION) {
-            return cachedContacts!!
+            return@withContext cachedContacts!!
         }
 
         val binnedIds = getBinnedIds()
@@ -60,7 +62,7 @@ class ContactRepository(private val context: Context) {
         val result = contacts.distinctBy { it.phoneNumber.filter { char -> char.isDigit() } }
         cachedContacts = result
         lastFetchTime = now
-        return result
+        result
     }
 
     fun addToBin(contactId: String) {
@@ -74,7 +76,7 @@ class ContactRepository(private val context: Context) {
         return prefs.getStringSet("binned_ids", emptySet()) ?: emptySet()
     }
 
-    fun updateContact(contactId: String, newName: String, newNumber: String): Boolean {
+    suspend fun updateContact(contactId: String, newName: String, newNumber: String): Boolean = withContext(Dispatchers.IO) {
         val ops = ArrayList<ContentProviderOperation>()
 
         ops.add(ContentProviderOperation.newUpdate(ContactsContract.Data.CONTENT_URI)
@@ -93,7 +95,7 @@ class ContactRepository(private val context: Context) {
             .withValue(ContactsContract.CommonDataKinds.Phone.NUMBER, newNumber)
             .build())
 
-        return try {
+        try {
             context.contentResolver.applyBatch(ContactsContract.AUTHORITY, ops)
             cachedContacts = null // Invalidate cache
             true
@@ -103,7 +105,7 @@ class ContactRepository(private val context: Context) {
         }
     }
 
-    fun addContact(name: String, number: String): Boolean {
+    suspend fun addContact(name: String, number: String): Boolean = withContext(Dispatchers.IO) {
         val ops = ArrayList<ContentProviderOperation>()
         val rawContactInsertIndex = ops.size
 
@@ -125,7 +127,7 @@ class ContactRepository(private val context: Context) {
             .withValue(ContactsContract.CommonDataKinds.Phone.TYPE, ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE)
             .build())
 
-        return try {
+        try {
             context.contentResolver.applyBatch(ContactsContract.AUTHORITY, ops)
             cachedContacts = null // Invalidate cache
             true
@@ -135,13 +137,13 @@ class ContactRepository(private val context: Context) {
         }
     }
 
-    fun deleteContact(contactId: String): Boolean {
+    suspend fun deleteContact(contactId: String): Boolean = withContext(Dispatchers.IO) {
         val ops = ArrayList<ContentProviderOperation>()
         ops.add(ContentProviderOperation.newDelete(ContactsContract.RawContacts.CONTENT_URI)
             .withSelection("${ContactsContract.RawContacts.CONTACT_ID}=?", arrayOf(contactId))
             .build())
 
-        return try {
+        try {
             context.contentResolver.applyBatch(ContactsContract.AUTHORITY, ops)
             cachedContacts = null // Invalidate cache
             true

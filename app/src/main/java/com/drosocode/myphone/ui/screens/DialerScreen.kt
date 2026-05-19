@@ -17,6 +17,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -36,6 +37,7 @@ fun DialerScreen(
     val context = LocalContext.current
     val repository = remember { com.drosocode.myphone.data.ContactRepository(context) }
     var contacts by remember { mutableStateOf(emptyList<com.drosocode.myphone.data.model.Contact>()) }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         contacts = repository.fetchContacts()
@@ -193,7 +195,10 @@ fun DialerScreen(
             initialNumber = phoneNumber,
             onDismiss = { showAddContactDialog = false },
             onSave = { name, number ->
-                repository.addContact(name, number)
+                scope.launch {
+                    repository.addContact(name, number)
+                    contacts = repository.fetchContacts()
+                }
                 showAddContactDialog = false
             }
         )

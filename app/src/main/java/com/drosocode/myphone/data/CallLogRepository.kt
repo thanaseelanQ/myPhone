@@ -6,6 +6,8 @@ import com.drosocode.myphone.data.model.CallLogEntry
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class CallLogRepository(private val context: Context) {
     
@@ -15,10 +17,10 @@ class CallLogRepository(private val context: Context) {
         private const val CACHE_DURATION = 3000L // 3 seconds cache
     }
 
-    fun fetchCallLogs(forceRefresh: Boolean = false): List<CallLogEntry> {
+    suspend fun fetchCallLogs(forceRefresh: Boolean = false): List<CallLogEntry> = withContext(Dispatchers.IO) {
         val now = System.currentTimeMillis()
         if (!forceRefresh && cachedCallLogs != null && (now - lastFetchTime) < CACHE_DURATION) {
-            return cachedCallLogs!!
+            return@withContext cachedCallLogs!!
         }
 
         val callLogs = mutableListOf<CallLogEntry>()
@@ -66,7 +68,7 @@ class CallLogRepository(private val context: Context) {
 
         cachedCallLogs = callLogs
         lastFetchTime = now
-        return callLogs
+        callLogs
     }
 
     fun formatDuration(seconds: String): String {
@@ -98,8 +100,8 @@ class CallLogRepository(private val context: Context) {
         }
     }
 
-    fun deleteCallLogs(ids: List<String>) {
-        if (ids.isEmpty()) return
+    suspend fun deleteCallLogs(ids: List<String>) = withContext(Dispatchers.IO) {
+        if (ids.isEmpty()) return@withContext
         val contentResolver = context.contentResolver
         val placeholders = ids.joinToString(",") { "?" }
         val selection = "${CallLog.Calls._ID} IN ($placeholders)"

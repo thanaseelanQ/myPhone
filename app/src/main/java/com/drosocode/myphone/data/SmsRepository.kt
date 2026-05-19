@@ -135,7 +135,7 @@ class SmsRepository(private val context: Context) {
         messages.reversed()
     }
 
-    fun sendMessage(address: String, body: String) {
+    suspend fun sendMessage(address: String, body: String) = withContext(Dispatchers.IO) {
         try {
             val smsManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 context.getSystemService(SmsManager::class.java)
@@ -162,7 +162,7 @@ class SmsRepository(private val context: Context) {
         }
     }
 
-    fun markThreadAsRead(threadId: String) {
+    suspend fun markThreadAsRead(threadId: String) = withContext(Dispatchers.IO) {
         val values = ContentValues().apply { put(Telephony.Sms.READ, 1) }
         context.contentResolver.update(
             Telephony.Sms.CONTENT_URI,
@@ -196,7 +196,7 @@ class SmsRepository(private val context: Context) {
         return if (!isNumericAddress) MessageCategory.TRANSACTIONS else MessageCategory.PERSONAL
     }
 
-    fun getContactName(context: Context, phoneNumber: String): String? {
+    suspend fun getContactName(context: Context, phoneNumber: String): String? = withContext(Dispatchers.IO) {
         val uri = Uri.withAppendedPath(
             android.provider.ContactsContract.PhoneLookup.CONTENT_FILTER_URI,
             Uri.encode(phoneNumber)
@@ -212,7 +212,7 @@ class SmsRepository(private val context: Context) {
         } catch (e: Exception) {
             // Ignore
         }
-        return name
+        name
     }
 
     suspend fun performCleanup() = withContext(Dispatchers.IO) {

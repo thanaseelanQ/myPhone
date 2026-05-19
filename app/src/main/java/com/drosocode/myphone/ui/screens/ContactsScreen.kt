@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -36,6 +37,7 @@ fun ContactsScreen(onNavigateToSms: (String) -> Unit = {}) {
     val context = LocalContext.current
     val repository = remember { ContactRepository(context) }
     var contacts by remember { mutableStateOf(emptyList<Contact>()) }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         try {
@@ -108,14 +110,18 @@ fun ContactsScreen(onNavigateToSms: (String) -> Unit = {}) {
             contact = editingContact!!,
             onDismiss = { editingContact = null },
             onSave = { name, number ->
-                if (repository.updateContact(editingContact!!.id, name, number)) {
-                    try { contacts = repository.fetchContacts() } catch (e: Exception) {}
+                scope.launch {
+                    if (repository.updateContact(editingContact!!.id, name, number)) {
+                        try { contacts = repository.fetchContacts() } catch (e: Exception) {}
+                    }
                 }
                 editingContact = null
             },
             onDelete = {
-                if (repository.deleteContact(editingContact!!.id)) {
-                    try { contacts = repository.fetchContacts() } catch (e: Exception) {}
+                scope.launch {
+                    if (repository.deleteContact(editingContact!!.id)) {
+                        try { contacts = repository.fetchContacts() } catch (e: Exception) {}
+                    }
                 }
                 editingContact = null
             }
@@ -126,8 +132,10 @@ fun ContactsScreen(onNavigateToSms: (String) -> Unit = {}) {
         ContactAddDialog(
             onDismiss = { showAddDialog = false },
             onSave = { name, number ->
-                if (repository.addContact(name, number)) {
-                    try { contacts = repository.fetchContacts() } catch (e: Exception) {}
+                scope.launch {
+                    if (repository.addContact(name, number)) {
+                        try { contacts = repository.fetchContacts() } catch (e: Exception) {}
+                    }
                 }
                 showAddDialog = false
             }
